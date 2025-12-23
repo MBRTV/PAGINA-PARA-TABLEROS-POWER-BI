@@ -4,35 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Power BI Hub - Secure System</title>
+    <title>BI Stealth System</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&family=Inter:wght@400;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; padding: 0; 
-            background-color: #f9fafb;
-            user-select: none;
-            -webkit-user-select: none;
-            overflow: hidden;
-        }
-        #initial-loader {
-            position: fixed; inset: 0; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; background: #ffffff;
-            z-index: 9999; transition: opacity 0.4s ease;
-        }
-        .fade-out { opacity: 0; pointer-events: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: 'Inter', sans-serif; background: #050505; color: #fff; margin: 0; user-select: none; overflow: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
         
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+        #gatekeeper {
+            position: fixed; inset: 0; background: #000; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none; /* Permite clicks a través si se queda pegado visualmente */
         }
+        
+        .scanner-line {
+            width: 100%; height: 2px; background: rgba(59, 130, 246, 0.5);
+            position: absolute; top: 0; left: 0; animation: scan 2s linear infinite;
+            box-shadow: 0 0 15px #3b82f6;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        iframe { background: #1a1a1a; }
     </style>
 
     <script type="importmap">
@@ -47,234 +48,196 @@
 </script>
 </head>
 <body oncontextmenu="return false;">
-    <div id="initial-loader">
-        <div class="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] font-black tracking-[0.3em] text-gray-400 uppercase">Cifrando Canal de Datos</p>
+    <div id="gatekeeper">
+        <div class="scanner-line"></div>
+        <div class="mb-6 w-12 h-12 border-t-2 border-blue-500 rounded-full animate-spin"></div>
+        <h2 class="mono text-[10px] tracking-[0.6em] text-blue-500 uppercase font-black animate-pulse">Establishing_Secure_Link</h2>
     </div>
 
     <div id="root"></div>
 
     <script>
-        // BLOQUEO DE TECLAS Y CONSOLA
-        document.onkeydown = function(e) {
-            if (e.keyCode == 123) return false;
-            if (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 67 || e.keyCode == 74)) return false;
-            if (e.ctrlKey && e.keyCode == 85) return false;
+        // Protección básica contra inspección
+        document.onkeydown = e => {
+            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && [73, 67, 74].includes(e.keyCode)) || (e.ctrlKey && e.keyCode == 85)) {
+                return false;
+            }
         };
-        // TRAMPA DEBUGGER
-        setInterval(() => {
-            const start = new Date();
-            debugger;
-            if (new Date() - start > 100) console.clear();
-        }, 1000);
     </script>
 
     <script type="text/babel" data-type="module" data-presets="react,typescript">
         import React, { useState, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
 
-        const STORAGE_KEY = 'pbi_hub_v11_vault_encrypted';
+        // v14 fuerza el reseteo de la caché para cargar las nuevas URLs corregidas
+        const VAULT_KEY = 'v14_stealth_config';
 
-        // MOTOR DE DECODIFICACIÓN SEGURO
-        const d_v = (s) => {
-            try { return decodeURIComponent(escape(atob(s))); }
-            catch(e) { return ""; }
+        // Utilidad de reconstrucción segura (Base64 Fragmentado)
+        // Esto evita que "powerbi.com" aparezca como texto plano en el código fuente
+        const reconstruct = (parts) => {
+            try {
+                return atob(parts.join(''));
+            } catch (e) {
+                console.error("Link corruption detected");
+                return "";
+            }
         };
 
-        const e_v = (s) => btoa(unescape(encodeURIComponent(s)));
-
-        /**
-         * BÓVEDA FRAGMENTADA - Las URLs están divididas para que no sean buscables.
-         */
-        const VLT_A_1 = "aHR0cHM6Ly9hcHAucG93ZXJiaS5jb20vcmVwb3J0RW1iZWQ/cmVwb3J0SWQ9NDZmZWM1NmYtZmZkOC00NWJhLWE3NjktODQyZTE0YTQyZmU3JmF1dG9BdXRoPXRydWUmY3RpZD04NTNlN2MyMy1jNTY0LTQ5YmQtOTk2Yy1lOGRhZTE3ODZiOTYmZmlsdGVyPVBST1lFQ1RPJTJGT0lEK2VxKzEmZmlsdGVyUGFuZUVuYWJsZWQ9ZmFsc2U=";
-        const VLT_B_1 = "aHR0cHM6Ly9hcHAucG93ZXJiaS5jb20vcmVwb3J0RW1iZWQ/cmVwb3J0SWQ9N2NkZWNiM2EtMDA4My00MGE4LTg1YWMtNjMyNzBhMWQ4MTQ0JmF1dG9BdXRoPXRydWUmY3RpZD04NTNlN2MyMy1jNTY0LTQ5YmQtOTk2Yy1lOGRhZTE3ODZiOTYmZmlsdGVyPVBST1lFQ1RPJTJGT0lEK2VxKzEmZmlsdGVyUGFuZUVuYWJsZWQ9ZmFsc2U=";
+        // DATOS OFUSCADOS (Split Base64)
+        // Fragmentos diseñados para romper la firma de texto de la URL
         
-        const INITIAL_DATA = [
-            { id: 'v_001', name: 'INGRESOS', payload: VLT_A_1 },
-            { id: 'v_002', name: 'FACTURACIÓN', payload: VLT_B_1 }
+        // URL 1: INGRESOS
+        const LINK_INGRESOS = [
+            "aHR0cHM6Ly9hcHAucG93ZXJiaS5jb20vcmVwb3J0RW1iZWQ/cmVwb3J0SWQ9NDZmZWM1NmYtZmZkOC00NWJhLWE3NjktODQyZTE0YTQyZmU3",
+            "JmF1dG9BdXRoPXRydWUmY3RpZD04NTNlN2MyMy1jNTY0LTQ5YmQtOTk2Yy1lOGRhZTE3ODZiOTYmZmlsdGVyPVBST1lFQ1RPJTJGT0lEK2VxKzEmZmlsdGVyUGFuZUVuYWJsZWQ9ZmFsc2U="
         ];
 
-        const DashboardViewer = ({ dash }) => {
-            const [loading, setLoading] = useState(true);
-            const url = d_v(dash.payload);
+        // URL 2: FACTURACION
+        const LINK_FACTURACION = [
+            "aHR0cHM6Ly9hcHAucG93ZXJiaS5jb20vcmVwb3J0RW1iZWQ/cmVwb3J0SWQ9N2NkZWNiM2EtMDA4My00MGE4LTg1YWMtNjMyNzBhMWQ4MTQ0",
+            "JmF1dG9BdXRoPXRydWUmY3RpZD04NTNlN2MyMy1jNTY0LTQ5YmQtOTk2Yy1lOGRhZTE3ODZiOTYmZmlsdGVyPVBST1lFQ1RPJTJGT0lEK2VxKzEmZmlsdGVyUGFuZUVuYWJsZWQ9ZmFsc2U="
+        ];
 
-            useEffect(() => {
-                setLoading(true);
-            }, [dash.id]);
-
-            return (
-                <div className="w-full h-full flex flex-col bg-white overflow-hidden">
-                    <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
-                            <span className="text-[9px] font-black text-gray-900 tracking-[0.3em] uppercase">{dash.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest italic">Sesión Encriptada AES-256</span>
-                            <div className="w-3 h-3 text-gray-200">
-                                <svg fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex-1 relative bg-gray-50">
-                        {loading && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10 transition-opacity">
-                                <div className="w-6 h-6 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.4em]">Sincronizando Nodo...</p>
-                            </div>
-                        )}
-                        <iframe
-                            key={dash.id}
-                            src={url}
-                            className="w-full h-full border-none shadow-inner"
-                            onLoad={() => setLoading(false)}
-                            allowFullScreen
-                        />
-                    </div>
-                </div>
-            );
-        };
-
-        const SettingsModal = ({ dashboards, onAdd, onDelete, onClose }) => {
-            const [name, setName] = useState('');
-            const [url, setUrl] = useState('');
-            const [error, setError] = useState('');
-
-            const handleAdd = (e) => {
-                e.preventDefault();
-                if (!name || !url) return setError('Campos requeridos');
-                onAdd(name.toUpperCase(), e_v(url));
-                setName(''); setUrl(''); setError('');
-            };
-
-            return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
-                    <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl flex flex-col overflow-hidden glass-panel">
-                        <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                            <h3 className="font-black text-gray-900 text-[9px] tracking-[0.4em] uppercase italic">Consola Admin</h3>
-                            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-black shadow-sm transition-all text-xs">✕</button>
-                        </div>
-                        <div className="p-8 space-y-8">
-                            <form onSubmit={handleAdd} className="space-y-4">
-                                <div className="space-y-1">
-                                    <label className="text-[8px] font-black text-gray-300 ml-2 tracking-widest">NOMBRE</label>
-                                    <input placeholder="INGRESOS..." value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-gray-100/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-[10px] font-black tracking-widest" />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[8px] font-black text-gray-300 ml-2 tracking-widest">URL POWER BI</label>
-                                    <input type="password" placeholder="HTTPS://..." value={url} onChange={e => setUrl(e.target.value)} className="w-full p-4 bg-gray-100/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs" />
-                                </div>
-                                {error && <p className="text-red-500 text-[8px] font-bold text-center uppercase tracking-widest">{error}</p>}
-                                <button type="submit" className="w-full py-5 bg-black text-white rounded-2xl font-black text-[9px] tracking-[0.3em] hover:bg-blue-600 transition-all uppercase shadow-xl">Guardar Nodo</button>
-                            </form>
-                            <div className="space-y-2 max-h-32 overflow-y-auto no-scrollbar border-t pt-4">
-                                {dashboards.map(d => (
-                                    <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                        <p className="font-black text-gray-600 text-[8px] uppercase tracking-widest truncate flex-1">{d.name}</p>
-                                        <button onClick={() => onDelete(d.id)} className="text-gray-300 hover:text-red-500 ml-4">
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
+        const INITIAL = [
+            { id: '1', name: 'INGRESOS', parts: LINK_INGRESOS },
+            { id: '2', name: 'FACTURACION', parts: LINK_FACTURACION }
+        ];
 
         const App = () => {
-            const [dashboards, setDashboards] = useState([]);
-            const [selectedId, setSelectedId] = useState(null);
+            const [nodes, setNodes] = useState(INITIAL);
+            const [selected, setSelected] = useState(INITIAL[0].id);
             const [showSettings, setShowSettings] = useState(false);
-            const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+            const [iframeLoading, setIframeLoading] = useState(true);
 
             useEffect(() => {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                let current = saved ? JSON.parse(saved) : INITIAL_DATA;
-                setDashboards(current);
-                if (current.length > 0) setSelectedId(current[0].id);
+                // Sistema de auto-liberación del loader
+                // Si el iframe tarda mucho o falla silenciosamente, quitamos el loader a los 2.5s
+                // para que el usuario pueda ver el error real de Power BI si existe.
+                const timer = setTimeout(() => {
+                    const loader = document.getElementById('gatekeeper');
+                    if (loader) {
+                        loader.style.opacity = '0';
+                        setTimeout(() => loader.remove(), 500);
+                    }
+                }, 2500);
 
-                const loader = document.getElementById('initial-loader');
-                if (loader) {
-                    setTimeout(() => {
-                        loader.classList.add('fade-out');
-                        setTimeout(() => loader.remove(), 400);
-                    }, 800);
+                // Cargar configuración guardada si existe (opcional, priorizamos INITIAL en esta versión para arreglar el error)
+                const saved = localStorage.getItem(VAULT_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if(parsed && parsed.length > 0) setNodes(parsed);
+                    } catch(e) {}
                 }
+
+                return () => clearTimeout(timer);
             }, []);
 
-            const updateData = (data) => {
-                setDashboards(data);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            const updateNodes = (newNodes) => {
+                setNodes(newNodes);
+                localStorage.setItem(VAULT_KEY, JSON.stringify(newNodes));
             };
 
-            const selected = dashboards.find(d => d.id === selectedId);
+            const activeNode = nodes.find(n => n.id === selected);
+            // Reconstruir URL al vuelo
+            const activeUrl = activeNode ? (activeNode.parts ? reconstruct(activeNode.parts) : activeNode.url) : "";
 
             return (
-                <div className="flex h-screen w-full overflow-hidden bg-white">
-                    {/* Sidebar Ultra-Minimalista */}
-                    <aside className={`fixed inset-y-0 left-0 z-50 w-60 bg-black text-white transform transition-transform duration-500 ease-in-out md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <div className="p-10 border-b border-white/5">
-                            <div className="flex items-center gap-4">
-                                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center font-black text-lg italic shadow-xl shadow-blue-500/20">P</div>
-                                <div>
-                                    <h1 className="font-black text-sm tracking-tighter leading-none uppercase">HUB v11</h1>
-                                    <p className="text-[7px] text-gray-600 font-bold tracking-[0.5em] uppercase mt-1">BI PROTECT</p>
-                                </div>
+                <div className="flex h-screen w-full bg-[#050505]">
+                    {/* Sidebar */}
+                    <aside className="w-16 md:w-64 bg-black border-r border-blue-900/20 flex flex-col z-10 shadow-2xl relative">
+                        <div className="p-8 border-b border-blue-900/10 mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span className="mono text-[9px] font-black text-white tracking-[0.3em] uppercase hidden md:block italic">Secure_Hub</span>
                             </div>
                         </div>
-                        <nav className="p-6 space-y-1 overflow-y-auto h-[calc(100%-180px)] no-scrollbar">
-                            <p className="text-[8px] font-black text-gray-700 uppercase tracking-[0.4em] mb-6 ml-4 italic">Nodos Activos</p>
-                            {dashboards.map(d => (
+
+                        <div className="flex-1 px-4 space-y-3 overflow-y-auto no-scrollbar">
+                            {nodes.map(n => (
                                 <button
-                                    key={d.id}
-                                    onClick={() => { setSelectedId(d.id); if (window.innerWidth < 768) setSidebarOpen(false); }}
-                                    className={`w-full text-left p-4 rounded-2xl text-[9px] font-black tracking-[0.2em] transition-all duration-500 uppercase ${selectedId === d.id ? 'bg-white text-black shadow-2xl scale-[1.03]' : 'text-gray-600 hover:text-white hover:bg-white/5'}`}
+                                    key={n.id}
+                                    onClick={() => { 
+                                        if (selected !== n.id) {
+                                            setSelected(n.id); 
+                                            setIframeLoading(true); 
+                                        }
+                                    }}
+                                    className={`w-full p-4 rounded-xl transition-all duration-300 mono text-[9px] font-bold tracking-widest text-left uppercase flex items-center gap-4 ${selected === n.id ? 'bg-blue-900/20 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900/50'}`}
                                 >
-                                    {d.name}
+                                    <span className={`w-1.5 h-1.5 rounded-full ${selected === n.id ? 'bg-blue-400' : 'bg-zinc-700'}`}></span>
+                                    <span className="hidden md:block truncate">{n.name}</span>
+                                    <span className="md:hidden">{n.name[0]}</span>
                                 </button>
                             ))}
-                        </nav>
-                        <div className="absolute bottom-0 left-0 right-0 p-8 border-t border-white/5 bg-black">
-                            <button onClick={() => setShowSettings(true)} className="w-full py-4 bg-white/5 rounded-2xl text-[7px] font-black text-gray-500 tracking-[0.4em] hover:bg-white hover:text-black transition-all">
-                                CONFIGURACIÓN
+                        </div>
+
+                        <div className="p-6">
+                            <button onClick={() => setShowSettings(true)} className="w-full py-3 bg-zinc-950 border border-zinc-900 rounded-xl text-[8px] mono font-black text-zinc-600 tracking-[0.2em] hover:bg-zinc-900 hover:text-white transition-all uppercase hover:border-zinc-700">
+                                Config
                             </button>
                         </div>
                     </aside>
 
-                    <main className="flex-1 flex flex-col min-w-0 bg-gray-50">
-                        <header className="md:hidden flex items-center justify-between p-6 bg-white border-b border-gray-100">
-                            <button onClick={() => setSidebarOpen(true)} className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-xl shadow-lg">☰</button>
-                            <h2 className="font-black tracking-[0.2em] text-gray-900 uppercase text-[9px] truncate max-w-[150px] italic">{selected?.name || 'Power BI'}</h2>
-                            <div className="w-10 h-10"></div>
-                        </header>
-                        <div className="flex-1 overflow-hidden">
-                            {selected ? (
-                                <DashboardViewer key={selected.id} dash={selected} />
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-12">
-                                    <h2 className="text-[9px] font-black text-gray-300 tracking-[0.5em] uppercase italic animate-pulse">Autenticando Acceso...</h2>
+                    {/* Visor */}
+                    <main className="flex-1 flex flex-col relative overflow-hidden bg-[#0a0a0a]">
+                        {activeNode ? (
+                            <div className="w-full h-full flex flex-col relative">
+                                <div className="absolute top-4 right-6 z-20 pointer-events-none">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-1.5 h-1.5 rounded-full ${iframeLoading ? 'bg-yellow-500 animate-ping' : 'bg-green-500'}`}></div>
+                                        <span className="mono text-[8px] text-zinc-500 tracking-widest uppercase">{iframeLoading ? 'RECEIVING_STREAM...' : 'LINK_ESTABLISHED'}</span>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+                                
+                                <iframe
+                                    key={activeNode.id}
+                                    src={activeUrl}
+                                    className="w-full h-full border-none opacity-0 transition-opacity duration-700 ease-in-out"
+                                    style={{ opacity: 1 }}
+                                    onLoad={() => setIframeLoading(false)}
+                                    allowFullScreen={true}
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center mono text-zinc-800 text-[10px] tracking-[1em]">SIGNAL_LOST</div>
+                        )}
                     </main>
 
+                    {/* Settings Modal */}
                     {showSettings && (
-                        <SettingsModal 
-                            dashboards={dashboards} 
-                            onClose={() => setShowSettings(false)} 
-                            onAdd={(name, payload) => {
-                                const newData = [...dashboards, { id: 'v_' + Date.now(), name, payload }];
-                                updateData(newData);
-                                setSelectedId(newData[newData.length - 1].id);
-                            }}
-                            onDelete={(id) => {
-                                const newData = dashboards.filter(d => d.id !== id);
-                                updateData(newData);
-                                if (selectedId === id) setSelectedId(newData.length > 0 ? newData[0].id : null);
-                            }}
-                        />
+                        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="w-full max-w-md bg-[#050505] border border-zinc-800 rounded-2xl p-8 shadow-2xl relative">
+                                <div className="flex justify-between items-center mb-8 border-b border-zinc-900 pb-4">
+                                    <h3 className="mono font-bold text-white text-[10px] tracking-[0.4em] uppercase">Override_Protocol</h3>
+                                    <button onClick={() => setShowSettings(false)} className="text-zinc-600 hover:text-white transition-colors">✕</button>
+                                </div>
+
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const n = e.target.node_name.value.toUpperCase();
+                                    const u = e.target.node_url.value;
+                                    if(!n || !u) return;
+                                    // Al añadir manualmente, guardamos la URL plana o una codificación simple
+                                    // ya que el usuario la conoce.
+                                    const newN = [...nodes, { 
+                                        id: Date.now().toString(), 
+                                        name: n, 
+                                        parts: [btoa(u)] // Codificación simple para nuevas entradas
+                                    }];
+                                    updateNodes(newN);
+                                    setSelected(newN[newN.length-1].id);
+                                    e.target.reset();
+                                    setShowSettings(false);
+                                }} className="space-y-5">
+                                    <input name="node_name" placeholder="IDENTIFICADOR" className="w-full p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg mono text-[10px] text-white focus:border-blue-900 outline-none transition-all placeholder:text-zinc-700" />
+                                    <input name="node_url" placeholder="ENLACE DE ORIGEN" className="w-full p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg mono text-[10px] text-white focus:border-blue-900 outline-none transition-all placeholder:text-zinc-700" />
+                                    <button className="w-full py-4 bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 border border-blue-900/50 rounded-lg mono text-[9px] font-bold tracking-[0.2em] uppercase transition-all">
+                                        Ejecutar Inserción
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     )}
                 </div>
             );
