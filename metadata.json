@@ -1,0 +1,5 @@
+{
+  "name": "Power BI Hub",
+  "description": "A centralized dashboard viewer for multiple Power BI reports with dynamic configuration and persistence.",
+  "requestFramePermissions": []
+}
