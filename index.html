@@ -12,26 +12,22 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Babel Standalone: Permite ejecutar TSX directamente en el navegador -->
+    <!-- Babel Standalone para procesar React/TSX en el navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
-        .animate-spin-slow { animation: spin 3s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        /* Estilo para el cargador inicial */
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f9fafb; }
         #initial-loader {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f9fafb;
-            z-index: 9999;
-            transition: opacity 0.5s ease;
+            position: fixed; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; background: #ffffff;
+            z-index: 9999; transition: opacity 0.4s ease;
         }
+        .fade-out { opacity: 0; pointer-events: none; }
+        /* Animaciones para el modal */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .animate-slide-up { animation: slideUp 0.4s ease-out; }
     </style>
 
     <!-- Import Map para React 19 -->
@@ -41,42 +37,217 @@
     "react": "https://esm.sh/react@19.0.0",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
-<body class="bg-gray-50">
-    <!-- Cargador visible mientras Babel procesa el código -->
+<body>
+    <!-- Cargador Inicial -->
     <div id="initial-loader">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-600 font-medium">Iniciando aplicación...</p>
+        <p id="loader-text" class="text-gray-600 font-medium">Cargando aplicación...</p>
     </div>
 
+    <!-- Contenedor Principal de React -->
     <div id="root"></div>
 
-    <!-- 
-      Consolidamos todo en index.tsx para evitar errores de MIME type y 
-      problemas de resolución de módulos en GitHub Pages.
-    -->
-    <script 
-      type="text/babel" 
-      data-type="module" 
-      data-presets="react,typescript" 
-      src="./index.tsx"
-    ></script>
-
+    <!-- Script de Diagnóstico (Si algo falla, avisará al usuario) -->
     <script>
-        // Ocultar el cargador cuando React tome el control
-        window.addEventListener('load', () => {
-            // Un pequeño delay para asegurar que React haya renderizado
-            setTimeout(() => {
+        window.onerror = function(msg, url, line) {
+            const loaderText = document.getElementById('loader-text');
+            if (loaderText) {
+                loaderText.innerHTML = `<span class="text-red-500">Error al iniciar: ${msg}</span>`;
+                document.querySelector('.animate-spin').style.borderColor = 'red';
+            }
+            return false;
+        };
+    </script>
+
+    <!-- LÓGICA DE LA APLICACIÓN (REACT + TSX) -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+
+        const STORAGE_KEY = 'pbi_hub_config_v3';
+
+        // --- COMPONENTES ---
+
+        const DashboardViewer = ({ url, name }) => {
+            const [loading, setLoading] = useState(true);
+            useEffect(() => { setLoading(true); }, [url]);
+
+            return (
+                <div className="w-full h-full bg-white flex flex-col overflow-hidden">
+                    <div className="hidden md:flex items-center px-6 py-4 border-b border-gray-100">
+                        <h2 className="text-lg font-bold text-gray-800 truncate">{name}</h2>
+                    </div>
+                    <div className="flex-1 relative bg-gray-50">
+                        {loading && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10">
+                                <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                <p className="text-xs text-gray-500 font-medium">Conectando con Power BI...</p>
+                            </div>
+                        )}
+                        <iframe
+                            title={name}
+                            src={url}
+                            className="w-full h-full border-none"
+                            onLoad={() => setLoading(false)}
+                            allowFullScreen
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        const SettingsModal = ({ dashboards, onAdd, onDelete, onClose }) => {
+            const [name, setName] = useState('');
+            const [url, setUrl] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!name || !url) return setError('Completa todos los campos');
+                if (!url.includes('app.powerbi.com')) return setError('URL de Power BI no válida');
+                onAdd(name, url);
+                setName(''); setUrl(''); setError('');
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+                        <div className="p-5 border-b flex justify-between items-center">
+                            <h3 className="font-bold text-gray-800">Administrar Tableros</h3>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+                        </div>
+                        <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+                            <form onSubmit={handleSubmit} className="space-y-3">
+                                <input placeholder="Nombre del reporte" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                                <input placeholder="URL de publicación de Power BI" value={url} onChange={e => setUrl(e.target.value)} className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                                {error && <p className="text-red-500 text-xs">{error}</p>}
+                                <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-blue-700">Añadir Tablero</button>
+                            </form>
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lista de Tableros</p>
+                                {dashboards.map(d => (
+                                    <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
+                                        <div className="truncate flex-1 pr-4">
+                                            <p className="font-bold text-gray-800 text-sm truncate">{d.name}</p>
+                                            <p className="text-[10px] text-gray-400 truncate">{d.url}</p>
+                                        </div>
+                                        <button onClick={() => onDelete(d.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="p-5 bg-gray-50 text-right">
+                            <button onClick={onClose} className="px-6 py-2 bg-white border rounded-xl text-sm font-bold text-gray-600">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [dashboards, setDashboards] = useState([]);
+            const [selectedId, setSelectedId] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
+            const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+
+            useEffect(() => {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setDashboards(parsed);
+                    if (parsed.length > 0) setSelectedId(parsed[0].id);
+                }
+                // Ocultar el cargador cuando la app esté lista
                 const loader = document.getElementById('initial-loader');
-                if (loader) loader.style.opacity = '0';
-                setTimeout(() => loader?.remove(), 500);
-            }, 1000);
-        });
+                if (loader) {
+                    loader.classList.add('fade-out');
+                    setTimeout(() => loader.remove(), 400);
+                }
+            }, []);
+
+            const save = (data) => {
+                setDashboards(data);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            };
+
+            const addDashboard = (name, url) => {
+                const newDash = { id: Date.now().toString(), name, url };
+                const updated = [...dashboards, newDash];
+                save(updated);
+                if (!selectedId) setSelectedId(newDash.id);
+            };
+
+            const deleteDashboard = (id) => {
+                const updated = dashboards.filter(d => d.id !== id);
+                save(updated);
+                if (selectedId === id) setSelectedId(updated.length > 0 ? updated[0].id : null);
+            };
+
+            const selected = dashboards.find(d => d.id === selectedId);
+
+            return (
+                <div className="flex h-screen w-full overflow-hidden bg-gray-50 text-gray-900">
+                    {/* Sidebar */}
+                    <aside className={`
+                        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-300
+                        md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    `}>
+                        <div className="p-6 border-b flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">P</div>
+                            <h1 className="font-bold text-xl tracking-tight">Hub PBI</h1>
+                        </div>
+                        <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100%-140px)]">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Mis Reportes</p>
+                            {dashboards.map(d => (
+                                <button
+                                    key={d.id}
+                                    onClick={() => { setSelectedId(d.id); if (window.innerWidth < 768) setSidebarOpen(false); }}
+                                    className={`w-full text-left p-3 rounded-xl text-sm font-medium transition-all ${selectedId === d.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-100'}`}
+                                >
+                                    {d.name}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
+                            <button onClick={() => setShowSettings(true)} className="w-full py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-all">Configuración</button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 flex flex-col min-w-0">
+                        <header className="md:hidden flex items-center justify-between p-4 bg-white border-b">
+                            <button onClick={() => setSidebarOpen(true)} className="p-2 text-gray-500">☰</button>
+                            <h2 className="font-bold truncate px-4">{selected?.name || 'Hub PBI'}</h2>
+                            <button onClick={() => setShowSettings(true)} className="text-blue-600 font-bold">⚙</button>
+                        </header>
+                        <div className="flex-1 overflow-hidden">
+                            {selected ? (
+                                <DashboardViewer url={selected.url} name={selected.name} />
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center p-10 text-center">
+                                    <div className="w-20 h-20 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">📊</div>
+                                    <h2 className="text-xl font-bold mb-2">No hay reportes configurados</h2>
+                                    <p className="text-gray-500 text-sm max-w-xs mb-6">Añade tus tableros de Power BI publicados para verlos aquí.</p>
+                                    <button onClick={() => setShowSettings(true)} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg">Comenzar Ahora</button>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {showSettings && <SettingsModal dashboards={dashboards} onAdd={addDashboard} onDelete={deleteDashboard} onClose={() => setShowSettings(false)} />}
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
